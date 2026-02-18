@@ -1,5 +1,6 @@
 ---
-- hosts: all
+- name: Configure all hosts
+  hosts: all
   gather_facts: true
   become: true
   roles:
@@ -12,11 +13,12 @@
     - role: user-mgmt
       tags: user-mgmt
 
-- hosts: localhost
+- name: Bootstrap localhost inventory and AWS identity
+  hosts: localhost
   gather_facts: true
   tasks:
-    - name: add localhost to inventory
-      add_host:
+    - name: Add localhost to inventory
+      ansible.builtin.add_host:
         name: "{{ inventory_hostname }}"
         groups:
           - "{{ ansible_inventory_sources[0] | basename }}"
@@ -24,11 +26,12 @@
         ansible_python_interpreter: "{{ ansible_playbook_python }}"
       tags: always
     - name: Get the current caller identity information
-      aws_caller_info:
+      amazon.aws.aws_caller_info:
       register: aws_caller_info
       tags: always
 
-- hosts: localhost
+- name: Deploy services to Kubernetes
+  hosts: localhost
   gather_facts: true
   roles:
     - role: unagi-ca

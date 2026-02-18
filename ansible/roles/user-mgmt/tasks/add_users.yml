@@ -1,5 +1,5 @@
 ---
-- name: combine usermgmt_users and usermgmt_custom_users
+- name: Combine usermgmt_users and usermgmt_custom_users
   ansible.builtin.set_fact:
     usermgmt_users: "{{ usermgmt_users + usermgmt_custom_users | default([]) }}"
 

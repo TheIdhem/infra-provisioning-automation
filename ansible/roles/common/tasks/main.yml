@@ -3,11 +3,14 @@
   community.general.timezone:
     name: "{{ timezone }}"
 
-- ansible.builtin.import_tasks: "packages.yml"
+- name: Install and configure packages
+  ansible.builtin.import_tasks: "packages.yml"
 
-- ansible.builtin.include_tasks: "sysctl.yml"
+- name: Apply sysctl tuning
+  ansible.builtin.include_tasks: "sysctl.yml"
 
-- ansible.builtin.include_tasks: "hardening.yml"
+- name: Apply system hardening
+  ansible.builtin.include_tasks: "hardening.yml"
 
 - name: Disable ssh password authentication
   ansible.builtin.lineinfile:

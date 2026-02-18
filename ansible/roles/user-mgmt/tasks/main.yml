@@ -13,9 +13,11 @@
     state: present
   loop: "{{ usermgmt_groups }}"
 
-- ansible.builtin.include_tasks: "add_users.yml"
+- name: Add users
+  ansible.builtin.include_tasks: "add_users.yml"
 
-- ansible.builtin.include_tasks: "remove_users.yml"
+- name: Remove undefined users
+  ansible.builtin.include_tasks: "remove_users.yml"
 
 - name: Add ssh keys to root user
   ansible.posix.authorized_key:

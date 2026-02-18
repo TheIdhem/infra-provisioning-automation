@@ -70,3 +70,4 @@
 - name: Make python3 default interpreter
   ansible.builtin.command: update-alternatives --install /usr/bin/python python /usr/bin/python3 1
   when: ansible_python_version < "3"
+  changed_when: false

@@ -1,5 +1,7 @@
 ---
-- name: ca priv keys
+- name: CA private keys
+  when:
+    - not lookup('amazon.aws.aws_secret', unagi_ca_privkey_secret_name, region=aws_region, on_missing='skip', on_deleted='skip')
   block:
     - name: Create temporary file to store private key
       ansible.builtin.tempfile:
@@ -25,10 +27,10 @@
         secret_type: "string"
         secret: "{{ openssl_privatekey['content'] | b64decode }}"
         region: "{{ aws_region }}"
-  when:
-    - not lookup('amazon.aws.aws_secret', unagi_ca_privkey_secret_name, region=aws_region, on_missing='skip', on_deleted='skip')
 
-- name: ca pub keys
+- name: CA public keys
+  when:
+    - not lookup('amazon.aws.aws_secret', unagi_ca_pubkey_secret_name, region=aws_region, on_missing='skip', on_deleted='skip')
   block:
     - name: Create temporary file to store public key
       ansible.builtin.tempfile:
@@ -64,5 +66,3 @@
         secret_type: "string"
         secret: "{{ openssl_publickey['content'] | b64decode }}"
         region: "{{ aws_region }}"
-  when:
-    - not lookup('amazon.aws.aws_secret', unagi_ca_pubkey_secret_name, region=aws_region, on_missing='skip', on_deleted='skip')
