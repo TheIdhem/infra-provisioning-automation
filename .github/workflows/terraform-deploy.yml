@@ -1,0 +1,134 @@
+name: Deploy Terraform
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy to
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan:
+    name: Plan — ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    env:
+      TF_IN_AUTOMATION: "true"
+
+    outputs:
+      plan_exit_code: ${{ steps.plan.outputs.exit_code }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.4"
+
+      - name: Write tfvars
+        working-directory: terraform
+        env:
+          TFVARS_CONTENT: ${{ secrets.TFVARS_CONTENT }}
+        run: |
+          printf '%s' "$TFVARS_CONTENT" > ${{ inputs.environment }}.tfvars
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Select workspace
+        working-directory: terraform
+        run: |
+          terraform workspace select ${{ inputs.environment }} \
+            || terraform workspace new ${{ inputs.environment }}
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: terraform
+        run: |
+          terraform plan \
+            --var-file=${{ inputs.environment }}.tfvars \
+            -detailed-exitcode \
+            -out=tfplan
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Fail on plan error
+        if: steps.plan.outputs.exit_code == '1'
+        run: exit 1
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}-${{ github.run_id }}
+          path: terraform/tfplan
+          retention-days: 1
+
+  apply:
+    name: Apply — ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: plan
+    environment: ${{ inputs.environment }}
+    if: needs.plan.outputs.plan_exit_code == '2'
+
+    env:
+      TF_IN_AUTOMATION: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.4"
+
+      - name: Write tfvars
+        working-directory: terraform
+        env:
+          TFVARS_CONTENT: ${{ secrets.TFVARS_CONTENT }}
+        run: |
+          printf '%s' "$TFVARS_CONTENT" > ${{ inputs.environment }}.tfvars
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Select workspace
+        working-directory: terraform
+        run: |
+          terraform workspace select ${{ inputs.environment }} \
+            || terraform workspace new ${{ inputs.environment }}
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}-${{ github.run_id }}
+          path: terraform/
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply tfplan
