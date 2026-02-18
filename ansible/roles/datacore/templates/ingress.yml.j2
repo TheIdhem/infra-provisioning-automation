@@ -1,0 +1,124 @@
+---
+api_version: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: datacore
+  namespace: "{{ datacore_namespace }}"
+  annotations: 
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/auth-tls-verify-client: "optional"
+      nginx.ingress.kubernetes.io/auth-tls-secret: "{{ datacore_namespace }}/unagi-ca-crt"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      external-dns.alpha.kubernetes.io/hostname: api.datacore.{{ public_domain }}
+      nginx.ingress.kubernetes.io/global-rate-limit: "3000"
+      nginx.ingress.kubernetes.io/global-rate-limit-window: "1m"
+      nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/cors-allow-methods: PUT, GET, POST, OPTIONS, DELETE, PATCH
+      nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+spec:
+  tls:
+  - hosts:
+    - "api.datacore.{{ public_domain }}"
+    secretName: datacore-tls
+  rules:
+    - host: "api.datacore.{{ public_domain }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: "datacore"
+                port:
+                  number: 80
+---
+api_version: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: datacore-sms
+  namespace: "{{ datacore_namespace }}"
+  annotations: 
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/auth-tls-verify-client: "optional"
+      nginx.ingress.kubernetes.io/auth-tls-secret: "{{ datacore_namespace }}/unagi-ca-crt"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      external-dns.alpha.kubernetes.io/hostname: api.datacore.{{ public_domain }}
+      nginx.ingress.kubernetes.io/global-rate-limit: "5"
+      nginx.ingress.kubernetes.io/global-rate-limit-window: "24h"
+      nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+spec:
+  tls:
+  - hosts:
+    - "api.datacore.{{ public_domain }}"
+    secretName: datacore-tls
+  rules:
+    - host: "api.datacore.{{ public_domain }}"
+      http:
+        paths:
+          - path: /request-pin
+            pathType: Prefix
+            backend:
+              service:
+                name: "datacore"
+                port:
+                  number: 80
+---
+api_version: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: datacore-captcha-sms
+  namespace: "{{ datacore_namespace }}"
+  annotations: 
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/auth-tls-verify-client: "optional"
+      nginx.ingress.kubernetes.io/auth-tls-secret: "{{ datacore_namespace }}/unagi-ca-crt"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      external-dns.alpha.kubernetes.io/hostname: api.datacore.{{ public_domain }}
+      nginx.ingress.kubernetes.io/global-rate-limit: "4"
+      nginx.ingress.kubernetes.io/global-rate-limit-window: "10m"
+      nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+spec:
+  tls:
+  - hosts:
+    - "api.datacore.{{ public_domain }}"
+    secretName: datacore-tls
+  rules:
+    - host: "api.datacore.{{ public_domain }}"
+      http:
+        paths:
+          - path: /v2/request-pin
+            pathType: Prefix
+            backend:
+              service:
+                name: "datacore"
+                port:
+                  number: 80
+---
+api_version: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: datacore-dynamic-link
+  namespace: "{{ datacore_namespace }}"
+  annotations: 
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      external-dns.alpha.kubernetes.io/hostname: i.{{ website_public_domain }}
+      nginx.ingress.kubernetes.io/global-rate-limit: "3000"
+      nginx.ingress.kubernetes.io/global-rate-limit-window: "1m"
+spec:
+  tls:
+  - hosts:
+    - "i.{{ website_public_domain }}"
+    secretName: dynamic-link-tls
+  rules:
+    - host: "i.{{ website_public_domain }}"
+      http:
+        paths:
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: "datacore"
+                port:
+                  number: 80

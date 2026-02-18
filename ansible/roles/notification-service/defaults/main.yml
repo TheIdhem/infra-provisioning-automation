@@ -1,0 +1,6 @@
+---
+notification_namespace: "notification-service"
+docdb_secret_host_name: "{{ docdb_datacore_secret_name + '.host' }}"
+docdb_secret_password_name: "{{ docdb_datacore_secret_name + '.password' }}"
+docdb_secret_username: "{{ docdb_datacore_secret_name + '.username' }}"
+rabbitmq_default_password: "{{ lookup('amazon.aws.aws_secret', 'rabbitmq-password-{{ project }}-{{ env }}', region=aws_region) }}"

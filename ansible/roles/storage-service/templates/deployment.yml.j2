@@ -1,0 +1,162 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage-service
+  namespace: {{ storage_service_namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storage-service
+  template:
+    metadata:
+      labels:
+        app: storage-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: storage-service
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app: storage-service
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: middleman-nginx-config
+      - name: lua-config
+        configMap:
+          name: userid-lua-config
+      - name: unagi-ca
+        secret:
+          defaultMode: 420
+          secretName: unagi-ca-crt    
+      containers:
+      - name: storage-service
+        image: {{ ecr_url }}/storage:925541759-main-c9e20bfd
+        imagePullPolicy: Always
+        ports:
+        - name: http-port-app
+          containerPort: 3000
+        env:
+          - name: AWS_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: storage-access-key
+                key: accesskey
+          - name: AWS_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: storage-secret-key
+                key: secretkey
+          - name: PROFILES_BUCKET
+            value: "{{ profiles_bucket_name }}"
+          - name: FILES_BUCKET
+            value: "{{ files_bucket_name }}"
+          - name: REGION
+            value: "{{ aws_region }}"
+          - name: S3_URL
+            value: ""
+          - name: BIND_ADDRESS
+            value: "0.0.0.0"
+          - name: BIND_PORT
+            value: "3000"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      - name: nginx
+        image: {{ ecr_url }}/custom-openresty:919138171-main-4225f64d
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+        - name: lua-config
+          mountPath: /etc/nginx/lua
+        - name: unagi-ca
+          mountPath: /etc/nginx/conf.d/crt
+          readOnly: true
+        imagePullPolicy: Always
+        ports:
+        - name: http-port
+          containerPort: 80
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "200Mi"
+          requests:
+            cpu: "100m"
+            memory: "100Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http-port
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: storage-service
+  namespace: {{ storage_service_namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: storage-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: storage-service
+  namespace: {{ storage_service_namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: storage-service
+  minReplicas: 2
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

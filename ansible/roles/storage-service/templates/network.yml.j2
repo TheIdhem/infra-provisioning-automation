@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: {{ storage_service_namespace }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow
+  namespace: {{ storage_service_namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: storage-service
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchNames:
+            - ingress-nginx
+    - from:
+        - namespaceSelector:
+            matchLabels:
+                kubernetes.io/metadata.name: "kube-system"
+  egress:
+    - to:
+{% for subnet in private_subnets %}
+        - ipBlock:
+            cidr: "{{ subnet }}"
+{% endfor %}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+                kubernetes.io/metadata.name: "kube-system"

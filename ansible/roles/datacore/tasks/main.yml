@@ -1,0 +1,64 @@
+---
+- name: Lookup secret
+  ansible.builtin.set_fact:
+    docdb_datacore_host: "{{ lookup('amazon.aws.aws_secret.aws_secret', docdb_secret_host_name, region=aws_region, nested=true) }}"
+    docdb_datacore_password: "{{ lookup('amazon.aws.aws_secret.aws_secret', docdb_secret_password_name, region=aws_region, nested=true) }}"
+    docdb_datacore_username: "{{ lookup('amazon.aws.aws_secret.aws_secret', docdb_secret_username, region=aws_region, nested=true) }}"
+    twilio_account_sid: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'twillio-meta.twilio_account_sid', region='eu-west-1', nested=true) }}"
+    twilio_auth_token: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'twillio-meta.twillio_auth_token', region='eu-west-1', nested=true) }}"
+    send_grid_api_key: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'twillio-meta.send_grid_api_key', region='eu-west-1', nested=true) }}"
+    unagi_ca_pubkey: "{{ lookup('amazon.aws.aws_secret.aws_secret', unagi_ca_pubkey_secret_name, region=aws_region) }}"
+    twilio_callout_api_key: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'twillio-meta.twilio_callout_api_key', region='eu-west-1', nested=true) }}"
+    twilio_callout_api_key_secret: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'twillio-meta.twilio_callout_api_key_secret', region='eu-west-1', nested=true) }}"
+    twilio_callout_app_sid: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'twillio-meta.twilio_callout_app_sid', region='eu-west-1', nested=true) }}"
+    twilio_callout_callback_secret: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'twillio-meta.twilio_callout_callback_secret', region='eu-west-1', nested=true) }}"
+    rds_datac_host: "{{ lookup('amazon.aws.aws_secret.aws_secret', rds_secret_host_name, region=aws_region, nested=true) }}"
+    rds_datac_password: "{{ lookup('amazon.aws.aws_secret.aws_secret', rds_secret_password_name, region=aws_region, nested=true) }}"
+    rds_datac_username: "{{ lookup('amazon.aws.aws_secret.aws_secret', rds_secret_username, region=aws_region, nested=true) }}"
+    stripe_api_key: "{{ lookup('amazon.aws.aws_secret.aws_secret', stripe_secret_api_key, region=aws_region, nested=true) }}"
+    stripe_webhook: "{{ lookup('amazon.aws.aws_secret.aws_secret', stripe_secret_webhook, region=aws_region, nested=true) }}"
+    rds_datac_db_name: "datac_db"
+    captcha_secret_token: "{{ lookup('amazon.aws.aws_secret.aws_secret', captcha_secret, region=aws_region, nested=true) }}"
+    captcha_site_secret_token: "{{ lookup('amazon.aws.aws_secret.aws_secret', captcha_site_secret, region=aws_region, nested=true) }}"
+
+- name: Create datacore namespace
+  kubernetes.core.k8s:
+    name: "{{ datacore_namespace }}"
+    kind: Namespace
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy secret.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "secret.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy deployment.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "deployment.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy configmap.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "configmap.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy service.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "service.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy ingress.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "ingress.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy servicemonitor.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "servicemonitor.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"

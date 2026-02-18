@@ -1,0 +1,4 @@
+---
+storage_service_namespace: "storage-service"
+storage_cred_access_name: "{{ storage_service_credential_secret_name + '.access_key' }}"
+storage_cred_secret_name: "{{ storage_service_credential_secret_name + '.secret_key' }}"

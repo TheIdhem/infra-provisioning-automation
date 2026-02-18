@@ -1,0 +1,12 @@
+---
+datacore_namespace: "datacore"
+docdb_secret_host_name: "{{ docdb_datacore_secret_name + '.host' }}"
+docdb_secret_password_name: "{{ docdb_datacore_secret_name + '.password' }}"
+docdb_secret_username: "{{ docdb_datacore_secret_name + '.username' }}"
+rds_secret_host_name: "{{ rds_msgc_secret_name + '.host' }}"
+rds_secret_password_name: "{{ rds_msgc_secret_name + '.password' }}"
+rds_secret_username: "{{ rds_msgc_secret_name + '.username' }}"
+stripe_secret_api_key: "stripe_tokens_{{ env + '.stripe_api_key' }}"
+stripe_secret_webhook: "stripe_tokens_{{ env + '.stripe_webhook_secret' }}"
+captcha_secret: "captcha_tokens_{{ env + '.recaptcha_secret' }}"
+captcha_site_secret: "captcha_tokens_{{ env + '.recaptcha_site_secret' }}"

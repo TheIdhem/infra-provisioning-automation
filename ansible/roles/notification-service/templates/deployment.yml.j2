@@ -1,0 +1,195 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: {{ notification_namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: notification-service
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app: notification-service
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: middleman-nginx-config
+      - name: lua-config
+        configMap:
+          name: userid-lua-config
+      - name: unagi-ca
+        secret:
+          defaultMode: 420
+          secretName: unagi-ca-crt
+      - name: google-service-acc
+        secret:
+          defaultMode: 420
+          secretName: google-service-account     
+      containers:
+      - name: notification-service
+        image: {{ ecr_url }}/notification:1069412551-master-97e47af2
+        volumeMounts:
+        - name: google-service-acc
+          mountPath: /secrets
+          readOnly: true
+        imagePullPolicy: Always
+        ports:
+        - name: http-port-app
+          containerPort: 3000
+        env:
+          - name: MONGODB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-username
+                key: username
+          - name: MONGODB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-password
+                key: password
+          - name: MONGODB_DBNAME
+            value: "notification"
+          - name: MONGODB_HOST
+            value: "{{ docdb_datacore_host }}"
+          - name: MONGODB_PORT
+            value: "27017"
+          - name: TWILIO_ENABLED
+            value: "false"
+          - name: FROM
+            value: "+12292523288"
+          - name: TWILIO_ACCOUNT_SID
+            valueFrom:
+              secretKeyRef:
+                name: twilio-sid
+                key: sid
+          - name: TWILIO_AUTH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: twilio-token
+                key: token
+          - name: SENDGRID_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: grid-apikey
+                key: apikey
+          - name: SENDGRID_FROM
+            value: "noreply@unagi.me"
+          - name: ORIGIN_URL
+            value: "phonebook.{{ public_domain }}"
+          - name: BIND_ADDRESS
+            value: "0.0.0.0"
+          - name: BIND_PORT
+            value: "3000"
+          - name: AMQP_URI
+            value: "amqp://{{ rabbitmq_default_username }}:{{ rabbitmq_default_password }}@rabbitmq.rabbitmq:5672"
+          - name: GOOGLE_SERVICE_ACCOUNT_PATH
+            value: "/secrets/google_service_account.json"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      - name: nginx
+        image: {{ ecr_url }}/custom-openresty:919138171-main-4225f64d
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+        - name: lua-config
+          mountPath: /etc/nginx/lua
+        - name: unagi-ca
+          mountPath: /etc/nginx/conf.d/crt
+          readOnly: true
+        imagePullPolicy: Always
+        ports:
+        - name: http-port
+          containerPort: 80
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "200Mi"
+          requests:
+            cpu: "100m"
+            memory: "100Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http-port
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-service
+  namespace: {{ notification_namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: notification-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: notification-service
+  namespace: {{ notification_namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: notification-service
+  minReplicas: 2
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

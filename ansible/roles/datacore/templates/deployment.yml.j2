@@ -1,0 +1,281 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datacore
+  namespace: {{ datacore_namespace }}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: datacore
+  template:
+    metadata:
+      labels:
+        app: datacore
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: datacore
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app: datacore
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: middleman-nginx-config
+      - name: lua-config
+        configMap:
+          name: userid-lua-config
+      - name: unagi-ca
+        secret:
+          defaultMode: 420
+          secretName: unagi-ca-crt
+      containers:
+      - name: datacore
+        image: {{ ecr_url }}/data-core:1095505281-master-6324903a
+        imagePullPolicy: Always
+        ports:
+        - name: http-port-app
+          containerPort: 3000
+        env:
+          - name: MONGODB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-username
+                key: username
+          - name: MONGODB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-password
+                key: password
+          - name: MONGODB_DBNAME
+            value: "data_core"
+          - name: MONGODB_HOST
+            value: "{{ docdb_datacore_host }}"
+          - name: MONGODB_PORT
+            value: "27017"
+          - name: NODE_ENV
+            value: "PRODUCTION"
+          - name: FROM
+            value: "+12292523288"
+          - name: TWILIO_ACCOUNT_SID
+            valueFrom:
+              secretKeyRef:
+                name: twilio-sid
+                key: sid
+          - name: TWILIO_AUTH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: twilio-token
+                key: token
+          - name: SENDGRID_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: grid-apikey
+                key: apikey
+          - name: SENDGRID_FROM
+            value: "noreply@unagi.me"
+          - name: ORIGIN_URL
+            value: "https://api.datacore.{{ public_domain }}"
+          - name: BIND_ADDRESS
+            value: "0.0.0.0"
+          - name: BIND_PORT
+            value: "3000"
+          - name: TWILIO_VIRTUAL_NUMBER_ENABLED
+            value: "true"
+          - name: TWILIO_VIRTUAL_SMS_ENABLED
+            value: "true"
+          - name: TWILIO_AUTH_SMS_ENABLED
+            value: "true"
+          - name: TWILIO_CALL_ENABLE
+            value: "true"
+          - name: TWILIO_CALL_TOKEN_TTL
+            value: "79200"
+          - name: TWILIO_CALLER_NUMBER
+            value: "+12292523288"
+          - name: GAS_FEE_UNAGI
+            value: "0"
+          - name: WALLET_UNAGI_CONVERSION
+            value: "0.01"
+          - name: TWILIO_CALLBACK_BASE_URL
+            value: "https://api.datacore.{{ public_domain }}/callout/twilioCallBack?callbackSecret={{ twilio_callout_callback_secret }}"
+          - name: POSTGRESS_HOST
+            value: "{{ rds_datac_host }}"
+          - name: POSTGRESS_PORT
+            value: "5432"
+          - name: POSTGRESS_DBNAME
+            value: "{{ rds_datac_db_name }}"
+          - name: POSTGRESS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rds-datac-password
+                key: value
+          - name: POSTGRESS_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: rds-datac-username
+                key: value
+          - name: TWILIO_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: twilio-callout-api-key
+                key: value
+          - name: TWILIO_API_KEY_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: twilio-callout-api-key-secret
+                key: value
+          - name: TWILIO_APP_SID
+            valueFrom:
+              secretKeyRef:
+                name: twilio-callout-app-sid
+                key: value
+          - name: TWILIO_CALLBACK_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: twilio-callout-callback-secret
+                key: value
+          - name: VERIFICATION_BONUS_AMOUNT
+            value: "200"
+          - name: MAIN_WALLET_USER_ID
+            value: "{{ main_wallet_user_id }}"
+          - name: STRIPE_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: stripe-api-key
+                key: value
+          - name: STRIPE_WEBHOOK_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: stripe-webhook
+                key: value
+          - name: STRIPE_TRANSFER_FAILED_RETRY_DURATION
+            value: "30000"
+          - name: STRIPE_TRANSFER_FAILED_RETRY_DURATION
+            value: "60000"
+          - name: REFERRAL_BONUS_AMOUNT
+            value: "200"
+          - name: MAXIMUM_REFERRALS_COUNT
+            value: "1000"
+          - name: LEADER_VALIDITY_DURATION
+            value: "30000"
+          - name: CHECK_LEADERSHIP_DURATION
+            value: "15000"
+          - name: RECAPTCHA_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: captcha-secret
+                key: value
+          - name: RECAPTCHA_V2_ANDROID_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: captcha-secret
+                key: value
+          - name: RECAPTCHA_V2_SITE_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: captcha-site-secret
+                key: value
+          - name: AMQP_URI
+            value: "amqp://{{ rabbitmq_default_username }}:{{ rabbitmq_default_password }}@rabbitmq.rabbitmq:5672"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "320Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      - name: nginx
+        image: {{ ecr_url }}/custom-openresty:919138171-main-4225f64d
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+        - name: lua-config
+          mountPath: /etc/nginx/lua
+        - name: unagi-ca
+          mountPath: /etc/nginx/conf.d/crt
+          readOnly: true
+        imagePullPolicy: Always
+        ports:
+        - name: http-port
+          containerPort: 80
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "200Mi"
+          requests:
+            cpu: "100m"
+            memory: "100Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http-port
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: datacore
+  namespace: {{ datacore_namespace }}
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: datacore
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: datacore
+  namespace: {{ datacore_namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: datacore
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
