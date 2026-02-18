@@ -1,0 +1,65 @@
+---
+api_version: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: support
+  namespace: "{{ support_namespace }}"
+  annotations: 
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      external-dns.alpha.kubernetes.io/hostname: api.support.{{ public_domain }}
+      nginx.ingress.kubernetes.io/global-rate-limit: "3000"
+      nginx.ingress.kubernetes.io/global-rate-limit-window: "1m"
+      nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/cors-allow-methods: PUT, GET, POST, OPTIONS, DELETE, PATCH
+      nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+spec:
+  tls:
+  - hosts:
+    - "api.support.{{ public_domain }}"
+    secretName: support-tls
+  rules:
+    - host: "api.support.{{ public_domain }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: "support"
+                port:
+                  number: 3000
+---
+api_version: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: support-intercom
+  namespace: "{{ support_namespace }}"
+  annotations: 
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      external-dns.alpha.kubernetes.io/hostname: api.support.{{ public_domain }}
+      nginx.ingress.kubernetes.io/global-rate-limit: "3000"
+      nginx.ingress.kubernetes.io/global-rate-limit-window: "1m"
+      nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+      nginx.ingress.kubernetes.io/whitelist-source-range: "34.231.68.152,34.197.76.213,35.171.78.91,35.169.138.21,52.70.27.159,52.44.63.161,54.217.125.63,54.246.173.113,54.216.9.3,52.63.36.185,3.104.68.152,52.64.2.165"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/cors-allow-methods: PUT, GET, POST, OPTIONS, DELETE, PATCH
+      nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+spec:
+  tls:
+  - hosts:
+    - "api.support.{{ public_domain }}"
+    secretName: support-tls
+  rules:
+    - host: "api.support.{{ public_domain }}"
+      http:
+        paths:
+          - path: /intercom
+            pathType: Prefix
+            backend:
+              service:
+                name: "support"
+                port:
+                  number: 3000

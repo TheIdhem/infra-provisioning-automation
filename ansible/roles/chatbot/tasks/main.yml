@@ -1,0 +1,32 @@
+---
+- name: Lookup secret
+  ansible.builtin.set_fact:
+    rds_chatbot_host: "{{ lookup('amazon.aws.aws_secret.aws_secret', rds_secret_host_name, region=aws_region, nested=true) }}"
+    rds_chatbot_password: "{{ lookup('amazon.aws.aws_secret.aws_secret', rds_secret_password_name, region=aws_region, nested=true) }}"
+    rds_chatbot_username: "{{ lookup('amazon.aws.aws_secret.aws_secret', rds_secret_username, region=aws_region, nested=true) }}"
+    rds_chatbot_db_name: "chatbot_db"
+    openai_api_key: "{{ lookup('amazon.aws.aws_secret.aws_secret', openai_api_key_secret, region=aws_region) }}"
+
+- name: Create chatbot namespace
+  kubernetes.core.k8s:
+    name: "{{ chatbot_namespace }}"
+    kind: Namespace
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy secret.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "secret.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy deployment.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "deployment.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy service.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "service.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"

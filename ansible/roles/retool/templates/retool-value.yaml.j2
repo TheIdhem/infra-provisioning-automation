@@ -1,0 +1,43 @@
+config:
+  licenseKey: "LOCAL-ONLY-TRIAL"
+  useInsecureCookies: true
+  encryptionKey: {{ lookup('amazon.aws.aws_secret', "bi-retool-encryptionkey-{{ project }}-{{ env }}", region=aws_region) }}
+  jwtSecret: {{ lookup('amazon.aws.aws_secret', "bi-retool-jwtsecret-{{ project }}-{{ env }}", region=aws_region) }}
+
+  postgresql:
+    host: retool-pgdb
+    port: 5432
+    db: retool_db
+    user: retool_udb
+    password: sVne75SZ@KMW01MW^BQugpfm
+    ssl_enabled: false
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/load-balancer-name: "retool-ingress-{{ env }}"
+    alb.ingress.kubernetes.io/scheme: "internal"
+    alb.ingress.kubernetes.io/subnets: "main-{{ env }}-private-{{ aws_region }}a, main-{{ env }}-private-{{ aws_region }}b"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    external-dns.alpha.kubernetes.io/hostname: "retool.{{ internal_domain }}"
+  hosts:
+  - host: "retool.{{ internal_domain }}"
+    paths:
+      - path: /*
+
+resources:
+  limits:
+    cpu: 1536m
+    memory: 2048Mi
+  requests:
+    cpu: 500m
+    memory: 1024Mi
+
+replicaCount: 1
+revisionHistoryLimit: 3
+
+image:
+  repository: "tryretool/backend"
+  tag: "3.6.16"
+  pullPolicy: "IfNotPresent"

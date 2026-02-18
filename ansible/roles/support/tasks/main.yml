@@ -1,0 +1,38 @@
+---
+- name: Lookup secret
+  ansible.builtin.set_fact:
+    rds_support_host: "{{ lookup('amazon.aws.aws_secret.aws_secret', rds_secret_host_name, region=aws_region, nested=true) }}"
+    rds_support_password: "{{ lookup('amazon.aws.aws_secret.aws_secret', rds_secret_password_name, region=aws_region, nested=true) }}"
+    rds_support_username: "{{ lookup('amazon.aws.aws_secret.aws_secret', rds_secret_username, region=aws_region, nested=true) }}"
+    rds_support_db_name: "support_db"
+    intercom_access_token: "{{ lookup('amazon.aws.aws_secret.aws_secret', intercom_access_token_secret, region=aws_region) }}"
+
+- name: Create support namespace
+  kubernetes.core.k8s:
+    name: "{{ support_namespace }}"
+    kind: Namespace
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy secret.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "secret.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy deployment.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "deployment.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy service.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "service.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy ingress.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "ingress.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"

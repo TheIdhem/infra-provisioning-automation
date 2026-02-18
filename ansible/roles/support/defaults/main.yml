@@ -1,0 +1,6 @@
+---
+support_namespace: "support"
+intercom_access_token_secret: "intecom_access_token_{{ env }}"
+rds_secret_host_name: "{{ rds_msgc_secret_name + '.host' }}"
+rds_secret_password_name: "{{ rds_msgc_secret_name + '.password' }}"
+rds_secret_username: "{{ rds_msgc_secret_name + '.username' }}"

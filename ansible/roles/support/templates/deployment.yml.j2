@@ -1,0 +1,104 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: support
+  namespace: {{ support_namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: support
+  template:
+    metadata:
+      labels:
+        app: support
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: support
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app: support
+      containers:
+      - name: support
+        image: {{ ecr_url }}/support-client:1093177615-main-f96f6c41
+        imagePullPolicy: Always
+        ports:
+        - name: http-port-app
+          containerPort: 3000
+        env:
+          - name: APP_PORT
+            value: "3000"
+          - name: WS_URL
+            value: "ws://msgc-http.msgc:8080/ws"
+          - name: DATA_CORE_URL
+            value: "http://datacore.datacore:3000"
+          - name: SUPPORT_USER_ID
+            value: "0324b4d3b5809ba9411399d0b4cde48d362a9fd4bfbc76ae7e1c4b31634a2dcda5"
+          - name: RETRY_LIMIT
+            value: "5"
+          - name: POSTGRES_HOST
+            value: "{{ rds_support_host }}"
+          - name: POSTGRES_PORT
+            value: "5432"
+          - name: POSTGRES_DB_NAME
+            value: "{{ rds_support_db_name }}"
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rds-support-password
+                key: value
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: rds-support-username
+                key: value
+          - name: INTERCOM_ACCESS_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: intercom-access-token
+                key: value
+          - name: INTERVAL_DURATION_IN_SECOND
+            value: "5"
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: support
+  namespace: {{ support_namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: support

@@ -1,0 +1,25 @@
+api_version: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: website
+  namespace: "{{ website_namespace }}"
+  annotations: 
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      external-dns.alpha.kubernetes.io/hostname: {{ website_public_domain }}
+spec:
+  tls:
+  - hosts:
+    - {{ website_public_domain }}
+    secretName: website-tls
+  rules:
+    - host: {{ website_public_domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: "website"
+                port:
+                  number: 80

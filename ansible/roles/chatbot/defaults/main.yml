@@ -1,0 +1,6 @@
+---
+chatbot_namespace: "chatbot"
+openai_api_key_secret: "openai_api_key_{{ env }}"
+rds_secret_host_name: "{{ rds_msgc_secret_name + '.host' }}"
+rds_secret_password_name: "{{ rds_msgc_secret_name + '.password' }}"
+rds_secret_username: "{{ rds_msgc_secret_name + '.username' }}"

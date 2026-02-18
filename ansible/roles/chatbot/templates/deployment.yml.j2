@@ -1,0 +1,104 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatbot
+  namespace: {{ chatbot_namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chatbot
+  template:
+    metadata:
+      labels:
+        app: chatbot
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: chatbot
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app: chatbot
+      containers:
+      - name: chatbot
+        image: {{ ecr_url }}/chat-bot:1093469165-main-aca83d30
+        imagePullPolicy: Always
+        ports:
+        - name: http-port-app
+          containerPort: 3000
+        env:
+          - name: BIND_ADDRESS
+            value: "0.0.0.0"
+          - name: BIND_PORT
+            value: "3000"
+          - name: WS_URL
+            value: "ws://msgc-http.msgc:8080/ws"
+          - name: DATA_CORE_URL
+            value: "http://datacore.datacore:3000"
+          - name: AI_BOT_USER_ID
+            value: "02f339b00a27c43c2dacc7c183c8ecd1f4fb2891cd0db49b7068bdbb180aa4919a"
+          - name: RETRY_LIMIT
+            value: "5"
+          - name: POSTGRES_HOST
+            value: "{{ rds_chatbot_host }}"
+          - name: POSTGRES_PORT
+            value: "5432"
+          - name: POSTGRES_DB_NAME
+            value: "{{ rds_chatbot_db_name }}"
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rds-chatbot-password
+                key: value
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: rds-chatbot-username
+                key: value
+          - name: OPENAI_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: openai-api-key
+                key: value
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port-app
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chatbot
+  namespace: {{ chatbot_namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: chatbot

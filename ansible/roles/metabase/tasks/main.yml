@@ -1,0 +1,27 @@
+---
+- name: Deploy metabase-postgresql
+  kubernetes.core.helm:
+    name: metabase-postgresql
+    chart_ref: bitnami/postgresql
+    release_namespace: bi
+    create_namespace: true
+    update_repo_cache: true
+    chart_version: '12.10.0'
+    values: "{{ lookup('template', 'postgresql-value.yaml.j2') | from_yaml }}"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Add pmint93 repository
+  kubernetes.core.helm_repository:
+    name: pmint93
+    repo_url: "https://pmint93.github.io/helm-charts"
+
+- name: Deploy metabase
+  kubernetes.core.helm:
+    name: metabase
+    chart_ref: pmint93/metabase
+    release_namespace: bi
+    create_namespace: false
+    update_repo_cache: true
+    chart_version: '2.8.0'
+    values: "{{ lookup('template', 'metabase-value.yaml.j2') | from_yaml }}"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
