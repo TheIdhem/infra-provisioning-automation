@@ -1,0 +1,80 @@
+project     = "unagi"
+environment = "dev"
+
+aws_region     = "<YOUR_AWS_REGION>"       # e.g. "us-east-1"
+aws_account_id = "<YOUR_AWS_ACCOUNT_ID>"  # 12-digit AWS account ID
+
+vpc_main_cidr = "172.18.0.0/16"
+
+ec2_general_config = {
+  public_ssh_port = "9181"
+  user_data       = <<-EOF
+#cloud-config
+# vim:syntax=yaml
+disable_root: false
+chpasswd:
+  list: |
+     root:<YOUR_SECURE_ROOT_PASSWORD>
+  expire: False
+runcmd:
+  - userdel ubuntu
+  - sed -i "s/#Port 22/Port 9181/" /etc/ssh/sshd_config
+  - systemctl restart sshd
+  EOF
+}
+keypair_default = {
+  name       = "default"
+  public_key = "<YOUR_SSH_PUBLIC_KEY>"  # e.g. "ssh-rsa AAAA... dev_keypair_default"
+}
+
+internal_domain = "unagi.dev"
+
+public_domain = "dev.unagi.com"
+
+website_domain = "unagi.me"
+
+eks_main_managed_node_group_general_settings = {
+  desired_size   = 3
+  min_size       = 3
+  max_size       = 6
+  instance_types = ["c5.large"]
+  capacity_type  = "ON_DEMAND"
+}
+
+eks_main_cert_manager_cluster_issuers = [
+  {
+    name        = "letsencrypt-staging"
+    acme_server = "https://acme-staging-v02.api.letsencrypt.org/directory"
+    acme_email  = "ssl@dev.unagi.com"
+  },
+  {
+    name        = "letsencrypt-prod"
+    acme_server = "https://acme-v02.api.letsencrypt.org/directory"
+    acme_email  = "ssl@dev.unagi.com"
+  }
+]
+
+rds_msgc_instance_configurations = {
+  instance_class        = "db.t4g.small"
+  allocated_storage     = 25
+  max_allocated_storage = 30
+}
+
+docdb_datacore_configurations = {
+  instance_class = "db.t4g.small"
+}
+
+eks_main_admins = ["<ADMIN_IAM_USERNAME_1>", "<ADMIN_IAM_USERNAME_2>"]
+
+eks_main_ingress_nginx = {
+  min_replicas              = 2
+  max_replicas              = 3
+  target_memory_utilization = 90
+  req_cpu                   = "250m"
+  req_mem                   = "250Mi"
+}
+
+# Leave empty or set to your Slack incoming webhook URL
+slack_alert_hook = ""
+
+cw_alert_lambda_func_path = "../assets/lambda-cloudwatch-alert/alert-python.zip"
