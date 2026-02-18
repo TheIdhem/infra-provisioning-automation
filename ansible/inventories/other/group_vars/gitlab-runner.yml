@@ -1,0 +1,6 @@
+---
+ansible_user: "root"
+
+ansible_port: "2112"
+
+kernel_version: "5.4*"

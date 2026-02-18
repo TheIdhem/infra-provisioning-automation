@@ -1,0 +1,2 @@
+---
+usermgmt_custom_users: "{{ usermgmt_tech_users + usermgmt_business_users }}"

@@ -1,0 +1,10 @@
+[all:children]
+master
+gitlab-runner
+
+[master]
+master01 ansible_host=78.47.38.188
+
+[gitlab-runner]
+gitlab-runner01 ansible_host=167.235.200.6
+gitlab-runner02 ansible_host=88.99.39.253

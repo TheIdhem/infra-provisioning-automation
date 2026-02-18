@@ -1,0 +1,15 @@
+[all:children]
+prod
+
+[prod:children]
+mgmt
+insight
+ec2
+
+[mgmt]
+mgmt01 ansible_host=mgmt.infra.unagi.com
+
+[insight]
+insight01 ansible_host=insight.infra.unagi.com
+
+[ec2]

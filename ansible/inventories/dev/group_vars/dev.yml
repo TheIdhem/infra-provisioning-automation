@@ -1,0 +1,30 @@
+---
+ansible_port: 9181
+
+project: "unagi"
+env: "dev"
+
+aws_region: "us-east-1"
+
+internal_domain: "unagi.dev"
+
+public_domain: "dev.unagi.com"
+website_public_domain: "unagi.me"
+
+docdb_datacore_secret_name: "<YOUR_DOCDB_DATACORE_SECRET_NAME>"
+
+storage_service_credential_secret_name: "<YOUR_S3_STORAGESERVICE_SECRET_NAME>"
+
+rds_msgc_secret_name: "<YOUR_RDS_MSGC_SECRET_NAME>"
+
+msgc_cluster_secret: "<YOUR_MSGC_CLUSTER_SECRET>"
+
+database_subnets:
+  - "172.18.144.0/20"
+  - "172.18.160.0/20"
+
+private_subnets:
+  - "172.18.48.0/20"
+  - "172.18.64.0/20"
+
+slack_alert_hook: ""

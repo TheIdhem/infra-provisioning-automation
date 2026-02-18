@@ -1,0 +1,67 @@
+---
+ansible_user: "root"
+
+kernel_version: "5.15*"
+
+lua_conf: |
+  local function certdecoder(str)
+  str = string.gsub(str, "+", " ")
+  str = string.gsub(str, "%%(%x%x)", function(hex)
+    return string.char(tonumber(hex, 16))
+  end)
+  str = string.gsub(str, "\r\n", "\n")
+  return str
+  end
+  -- Check if the compressed public key hex is already in the cache
+  local cache = ngx.shared.pubkey_hex_cache
+  local key = ngx.var.http_ssl_client_cert
+  local compressed_pub_key_hex = cache:get(key)
+
+  if not compressed_pub_key_hex then
+  -- If the compressed public key hex is not in the cache, compute it and store it in the cache
+  local keyDecoded = certdecoder(key)
+  local handle = io.popen("openssl x509 -pubkey -noout <<EOF\n" .. keyDecoded .. "\nEOF")
+  local pub_key = handle:read("*a")
+  handle:close()
+  handle = io.popen('echo "' .. pub_key .. '" | openssl ec -pubin -inform PEM -conv_form compressed -outform der 2>/dev/null | tail -c 33 | xxd -p -c 33 | grep -v "^\\s*$" | cut -d\' \' -f1')
+  compressed_pub_key_hex = handle:read("*a")
+  handle:close()
+
+  compressed_pub_key_hex = compressed_pub_key_hex:match("^%s*(.-)%s*$")
+
+  -- Store the compressed public key hex in the cache for future requests
+  cache:set(key, compressed_pub_key_hex, 86400) -- expire after 24 hours
+  end
+  ngx.var.userid = compressed_pub_key_hex
+
+rabbitmq_default_username: "unagi"
+
+files_bucket_name: "unagi-files-{{ env }}"
+profiles_bucket_name: "unagi-profiles-{{ env }}"
+
+lua_pubkey_hex_cache: 10m
+
+infura_test_rpc_url: "sepolia.infura.io"
+etherscan_test_url: "api-sepolia.etherscan.io"
+
+infura_prod_rpc_url: "mainnet.infura.io"
+etherscan_prod_url: "api.etherscan.io"
+
+unagi_ca_privkey_secret_name: "unagi_ca_privatekey_{{ env }}"
+unagi_ca_pubkey_secret_name: "unagi_ca_publickey_{{ env }}"
+
+# ECR URL: the shared Docker image registry populated by per-service build pipelines.
+# Format: <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/unagi
+# See docs/architecture.md for the full explanation.
+ecr_url: "<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.<YOUR_AWS_REGION>.amazonaws.com/unagi"
+
+# Agora App ID for the agora-token-service (video/voice tokens)
+agora_token_service_app_id: "<YOUR_AGORA_APP_ID>"
+
+usermgmt_tech_users:
+  - name: "Example User"
+    username: "e-user"
+    keys: "<YOUR_SSH_PUBLIC_KEY>"
+    shell: "/bin/bash"
+
+usermgmt_business_users: []

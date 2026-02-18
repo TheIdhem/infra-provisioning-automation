@@ -1,0 +1,8 @@
+---
+ansible_user: "root"
+
+ansible_port: "2112"
+
+kernel_version: "5.4*"
+
+usermgmt_custom_users: "{{ usermgmt_tech_users }}"

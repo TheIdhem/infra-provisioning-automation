@@ -1,0 +1,31 @@
+---
+ansible_port: 7181
+
+project: "unagi"
+env: "prod"
+
+aws_region: "eu-west-1"
+
+internal_domain: "unagi.prod"
+
+public_domain: "unagi.com"
+website_public_domain: "unagi.me"
+
+docdb_datacore_secret_name: "<YOUR_DOCDB_DATACORE_SECRET_NAME>"
+
+storage_service_credential_secret_name: "<YOUR_S3_STORAGESERVICE_SECRET_NAME>"
+
+rds_msgc_secret_name: "<YOUR_RDS_MSGC_SECRET_NAME>"
+
+msgc_cluster_secret: "<YOUR_MSGC_CLUSTER_SECRET>"
+
+database_subnets:
+  - "172.16.144.0/20"
+  - "172.16.160.0/20"
+
+private_subnets:
+  - "172.16.64.0/20"
+  - "172.16.48.0/20"
+
+# Slack incoming webhook URL for CloudWatch alarm notifications
+slack_alert_hook: "<YOUR_SLACK_WEBHOOK_URL>"
