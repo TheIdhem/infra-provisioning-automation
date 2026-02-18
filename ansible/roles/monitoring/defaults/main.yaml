@@ -1,0 +1,10 @@
+---
+monitoring_namespace: "monitoring"
+kube_prometheus_stack_retentions:
+  alertmanager: 180
+  prometheus: 180
+
+kube_prometheus_stack_storages:
+  alertmanager: 5
+  prometheus: 100
+  grafana: 10

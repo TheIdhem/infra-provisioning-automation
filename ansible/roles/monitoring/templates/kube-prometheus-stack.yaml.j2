@@ -1,0 +1,130 @@
+defaultRules:
+  rules:
+    general: false
+    windows: false
+    kubeControllerManager: false
+    kubernetesSystem: false
+    kubeSchedulerAlerting: false
+
+alertmanager:
+  enabled: true
+  config:
+    global:
+      resolve_timeout: 6m
+    route:
+      routes:
+      - match:
+          alertname: Watchdog
+        receiver: 'null'
+      repeat_interval: 3h
+      receiver: "slack-notifications"
+    receivers:
+    - name: 'null'
+    - name: "slack-notifications"
+      slack_configs:
+      - api_url: {{ slack_alert_hook }}
+        channel: '#warning-alert'
+        send_resolved: true
+{% raw %}
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}]'
+        pretext: ''
+        text: |-
+          *Alert:* {{ .CommonLabels.alertname }}
+          *Details:*
+          {{ range .Alerts -}}
+          {{ range .Labels.SortedPairs -}} {{- if (or (eq .Name "container") (eq .Name "mountpoint") (eq .Name "group") (eq .Name "ingress") ) -}} • *{{ .Name }}:*  ```{{ .Value }}``` {{ printf "\n" -}} {{- end -}} {{- end -}} {{- printf "\n" -}} • *Summary:* {{ .Annotations.summary }}  {{ printf "\n" -}} {{- end -}}
+{% endraw %}
+
+  alertmanagerSpec:
+    retention: {{ kube_prometheus_stack_retentions.alertmanager }}h
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp2
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: {{ kube_prometheus_stack_storages.alertmanager }}Gi
+
+grafana:
+  adminPassword: {{ lookup('amazon.aws.aws_secret', "monitoring-grafana-admin-password-{{ project }}-{{ env }}", region=aws_region) }}
+  
+  replicas: 1
+
+  env:
+    AWS_ROLE_ARN: arn:aws:iam::{{ aws_caller_info.account }}:role/eks-main-cloudwatch-grafana-{{ env }}
+    AWS_WEB_IDENTITY_TOKEN_FILE: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+    AWS_REGION: {{ aws_region }}
+
+  extraSecretMounts:
+    - name: aws-iam-token
+      mountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
+      readOnly: true
+      projected:
+        defaultMode: 420
+        sources:
+          - serviceAccountToken:
+              audience: sts.amazonaws.com
+              expirationSeconds: 86400
+              path: token
+
+  persistence:
+    type: pvc
+    enabled: true
+    storageClassName: gp2
+    accessModes:
+      - ReadWriteOnce
+    size: {{ kube_prometheus_stack_storages.grafana }}Gi
+
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: "alb"
+      alb.ingress.kubernetes.io/load-balancer-name: "grafana-ingress-{{ env }}"
+      alb.ingress.kubernetes.io/scheme: "internal"
+      alb.ingress.kubernetes.io/subnets: "main-{{ env }}-private-{{ aws_region }}a, main-{{ env }}-private-{{ aws_region }}b"
+      alb.ingress.kubernetes.io/target-type: "ip"
+      external-dns.alpha.kubernetes.io/hostname: "grafana.{{ internal_domain }}"
+    path: /
+    pathType: Prefix
+    hosts:
+      - grafana.{{ internal_domain }}
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: CloudWatch
+        type: cloudwatch
+        uid: cloudwatch
+        editable: false
+        jsonData:
+          authType: default
+          defaultRegion: {{ aws_region }}
+
+prometheusOperator:
+  prometheusConfigReloader:
+    resources:
+      requests:
+        cpu: 300m
+        memory: 100Mi
+      limits:
+        cpu: 1
+        memory: 200Mi
+
+prometheus:
+  prometheusSpec:
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    retention: {{ kube_prometheus_stack_retentions.prometheus }}d
+    storageSpec:
+     volumeClaimTemplate:
+       spec:
+         storageClassName: gp2
+         accessModes: ["ReadWriteOnce"]
+         resources:
+           requests:
+             storage: {{ kube_prometheus_stack_storages.prometheus }}Gi

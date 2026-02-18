@@ -1,0 +1,6 @@
+---
+- name: Deploy kube-prometheus-stack
+  ansible.builtin.include_tasks: kube-prometheus-stack.yml
+
+- name: Configure prometheus rules
+  ansible.builtin.include_tasks: prometheus-rules.yml

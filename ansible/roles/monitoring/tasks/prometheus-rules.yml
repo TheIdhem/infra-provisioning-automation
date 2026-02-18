@@ -1,0 +1,6 @@
+---
+- name: Deploy prometheus-rules.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "prometheus-rules.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"

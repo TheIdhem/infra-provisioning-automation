@@ -1,0 +1,26 @@
+---
+- name: Generate password for grafana admin password
+  community.aws.secretsmanager_secret:
+    name: "monitoring-grafana-admin-password-{{ project }}-{{ env }}"
+    state: present
+    secret_type: "string"
+    secret: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits,hexdigits,octdigits') }}"
+    region: "{{ aws_region }}"
+  when:
+    - not lookup('amazon.aws.aws_secret', "monitoring-grafana-admin-password-{{ project }}-{{ env }}", region=aws_region, on_missing='skip', on_deleted='skip')
+
+- name: Add prometheus-community repository
+  kubernetes.core.helm_repository:
+    name: prometheus-community
+    repo_url: "https://prometheus-community.github.io/helm-charts"
+
+- name: Deploy kube-prometheus-stack
+  kubernetes.core.helm:
+    name: kube-prometheus-stack
+    chart_ref: prometheus-community/kube-prometheus-stack
+    release_namespace: "{{ monitoring_namespace }}"
+    create_namespace: true
+    update_repo_cache: true
+    chart_version: "47.3.0"
+    values: "{{ lookup('template', 'kube-prometheus-stack.yaml.j2') | from_yaml }}"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"

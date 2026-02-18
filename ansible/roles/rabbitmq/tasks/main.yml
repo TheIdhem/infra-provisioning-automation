@@ -1,0 +1,26 @@
+---
+- name: Generate password for rabbitmq user
+  community.aws.secretsmanager_secret:
+    name: "rabbitmq-password-{{ project }}-{{ env }}"
+    state: present
+    secret_type: "string"
+    secret: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits,hexdigits,octdigits') }}"
+    region: "{{ aws_region }}"
+  when:
+    - not lookup('amazon.aws.aws_secret', "rabbitmq-password-{{ project }}-{{ env }}", region=aws_region, on_missing='skip', on_deleted='skip')
+
+- name: Add bitnami repository
+  kubernetes.core.helm_repository:
+    name: bitnami
+    repo_url: "https://charts.bitnami.com/bitnami"
+
+- name: Deploy rabbitmq
+  kubernetes.core.helm:
+    name: rabbitmq
+    chart_ref: bitnami/rabbitmq
+    release_namespace: "{{ rabbitmq_namespace }}"
+    create_namespace: true
+    update_repo_cache: true
+    chart_version: "12.0.2"
+    values: "{{ lookup('template', 'rabbitmq-value-file.yml.j2') | from_yaml }}"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
