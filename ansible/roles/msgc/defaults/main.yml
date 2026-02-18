@@ -1,0 +1,7 @@
+---
+msgc_namespace: "msgc"
+rds_secret_host_name: "{{ rds_msgc_secret_name + '.host' }}"
+rds_secret_password_name: "{{ rds_msgc_secret_name + '.password' }}"
+rds_secret_username: "{{ rds_msgc_secret_name + '.username' }}"
+rds_secret_db_name: "{{ rds_msgc_secret_name + '.db_name' }}"
+rabbitmq_default_password: "{{ lookup('amazon.aws.aws_secret', 'rabbitmq-password-{{ project }}-{{ env }}', region=aws_region) }}"

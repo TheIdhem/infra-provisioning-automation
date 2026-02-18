@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: msgc-cluster
+  namespace: {{ msgc_namespace }}
+spec:
+  selector:
+    app: msgc
+  type: ClusterIP
+  clusterIP: "None"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/part-of: msgc
+  name: msgc-http
+  namespace: {{ msgc_namespace }}
+spec:
+  selector:
+    app: msgc
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http-port
+  - name: http-port-app
+    port: 8080
+    targetPort: http-port-app

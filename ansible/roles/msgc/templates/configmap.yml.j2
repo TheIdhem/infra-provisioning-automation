@@ -1,0 +1,72 @@
+apiVersion: v1
+data:
+  msgc.conf: |
+        server_tokens "off";
+        lua_package_path "/etc/nginx/lua/?.lua;;";
+
+        lua_shared_dict pubkey_hex_cache {{ lua_pubkey_hex_cache }};
+        server {
+            listen 80 default_server;
+
+            access_log /dev/stdout;
+            error_log /dev/stdout;
+
+            server_name _;
+
+            client_max_body_size 5M;
+
+            location /healthy {
+                proxy_pass http://127.0.0.1:8080;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            }
+
+            location /api {
+                proxy_pass http://127.0.0.1:8080;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            }
+
+            location /ws {
+              if ($http_ssl_client_cert = '') {
+                  return 403;
+              }
+
+              set $userid "";
+              access_by_lua_file /etc/nginx/lua/userid.lua;
+              proxy_set_header USERID $userid;
+
+              proxy_pass http://127.0.0.1:8080;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_http_version 1.1;
+            }
+
+            location /cert/hc {
+              if ($http_ssl_client_cert = '') {
+                  return 403;
+              }
+              return 200 "The client certificate is ok";
+            }
+            
+            location / {
+              if ($http_ssl_client_cert = '') {
+                  return 403;
+              }
+              return 200 "Up and running";
+            }
+        }
+kind: ConfigMap
+metadata:
+  name: middleman-nginx-config
+  namespace: {{ msgc_namespace }}
+---
+apiVersion: v1
+data:
+  userid.lua: |
+    {{ lua_conf | indent(4) }}
+
+kind: ConfigMap
+metadata:
+  name: userid-lua-config
+  namespace: {{ msgc_namespace }}

@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: {{ msgc_namespace }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow
+  namespace: {{ msgc_namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: msgc
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchNames:
+            - ingress-nginx
+            - monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+                kubernetes.io/metadata.name: "kube-system"
+    - from:
+        - podSelector:
+            matchLabels:
+              log-me: "true"
+  egress:
+    - to:
+{% for subnet in database_subnets %}
+        - ipBlock:
+            cidr: "{{ subnet }}"
+{% endfor %}
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchNames:
+            - rabbitmq
+    - to:
+        - namespaceSelector:
+            matchLabels:
+                kubernetes.io/metadata.name: "kube-system"

@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: msgc
+  namespace: {{ msgc_namespace }}
+spec:
+  endpoints:
+  - interval: 30s
+    path: /metrics
+    port: http-port-app
+  namespaceSelector:
+    matchNames:
+    - msgc
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: msgc

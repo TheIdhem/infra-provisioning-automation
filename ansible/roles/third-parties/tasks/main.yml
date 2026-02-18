@@ -1,0 +1,42 @@
+---
+- name: Lookup secret
+  ansible.builtin.set_fact:
+    unagi_ca_pubkey: "{{ lookup('amazon.aws.aws_secret.aws_secret', unagi_ca_pubkey_secret_name, region=aws_region) }}"
+    etherscan_token: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'crypto_tokens_prod.etherscan_token', region='eu-west-1', nested=true) }}"
+    infura_token: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'crypto_tokens_prod.infura_token', region='eu-west-1', nested=true) }}"
+
+- name: Create third_parties namespace
+  kubernetes.core.k8s:
+    name: "{{ third_parties_namespace }}"
+    kind: Namespace
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy secret.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "secret.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy deployment.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "deployment.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy configmap.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "configmap.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy service.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "service.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy ingress.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "ingress.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"

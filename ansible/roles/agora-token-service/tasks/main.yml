@@ -1,0 +1,47 @@
+---
+- name: Lookup secret
+  ansible.builtin.set_fact:
+    agora_app_certificate: "{{ lookup('amazon.aws.aws_secret.aws_secret', 'agora_token_service_app_certificate', region='eu-west-1') }}"
+    unagi_ca_pubkey: "{{ lookup('amazon.aws.aws_secret.aws_secret', unagi_ca_pubkey_secret_name, region=aws_region) }}"
+
+- name: Create agora namespace
+  kubernetes.core.k8s:
+    name: "{{ agora_namespace }}"
+    kind: Namespace
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy secret.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "secret.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy deployment.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "deployment.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy configmap.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "configmap.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy service.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "service.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy ingress.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "ingress.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"
+
+- name: Deploy network.yml
+  kubernetes.core.k8s:
+    state: present
+    template: "network.yml.j2"
+    kubeconfig: "~/.kube/{{ project }}-eks-main-{{ env }}"

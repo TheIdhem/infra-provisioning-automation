@@ -1,0 +1,70 @@
+---
+apiVersion: v1
+data:
+  infura-test.conf: |
+    server_tokens "off";
+    server {
+        listen 80 default_server;
+
+        access_log /dev/stdout;
+        error_log /dev/stdout;
+        server_name api.infuratest.{{ public_domain }};
+
+        location / {
+            proxy_http_version 1.1;
+            proxy_pass https://{{ infura_test_rpc_url }}/v3/{{ infura_token }};
+        }
+    }
+  etherscan-test.conf: |
+    server {
+        listen 80;
+
+        access_log /dev/stdout;
+        error_log /dev/stdout;
+        server_name api.etherscantest.{{ public_domain }};
+
+        location / {
+            if ($http_ssl_client_cert = '') {
+                return 403;
+            }
+            proxy_set_header Host '{{ etherscan_test_url }}';
+            set $args $args&apikey={{ etherscan_token }};
+            proxy_pass http://{{ etherscan_test_url }};
+        }
+    }
+  infura.conf: |
+    server {
+        listen 80;
+
+        access_log /dev/stdout;
+        error_log /dev/stdout;
+        server_name api.infura.{{ public_domain }};
+
+        location / {
+            proxy_http_version 1.1;
+            proxy_pass https://{{ infura_prod_rpc_url }}/v3/{{ infura_token }};
+        }
+    }
+  etherscan.conf: |
+    server {
+        listen 80;
+
+        access_log /dev/stdout;
+        error_log /dev/stdout;
+        server_name api.etherscan.{{ public_domain }};
+
+        location / {
+            if ($http_ssl_client_cert = '') {
+                return 403;
+            }
+            proxy_hide_header Cache-Control;
+            proxy_set_header Host '{{ etherscan_prod_url }}';
+            set $args $args&apikey={{ etherscan_token }};
+            proxy_pass http://{{ etherscan_prod_url }};
+        }
+    }
+
+kind: ConfigMap
+metadata:
+  name: middleman-nginx-proxy-config
+  namespace: {{ third_parties_namespace }}

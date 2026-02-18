@@ -1,0 +1,194 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: msgc
+  namespace: {{ msgc_namespace }}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: msgc
+  template:
+    metadata:
+      labels:
+        app: msgc
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: msgc
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+              labelSelector:
+                matchLabels:
+                  app: msgc
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: middleman-nginx-config
+      - name: lua-config
+        configMap:
+          name: userid-lua-config
+      - name: unagi-ca
+        secret:
+          defaultMode: 420
+          secretName: unagi-ca-crt 
+      - name: unagi-sign-key
+        secret:
+          secretName: unagi-signing-key
+      containers:
+      - name: msgc
+        image: {{ ecr_url }}/messaging-core:1079957073-master-438b5e8d
+        command: ["/bin/sh", "-c", "mkdir /ca; cat /ca-tmp/ca.key > /ca/ca.key; cat /ca-tmp/ca.crt > /ca/ca.crt; /msgc/bin/msgc foreground;"]
+        volumeMounts:
+        - name: unagi-sign-key
+          mountPath: /ca-tmp
+        imagePullPolicy: Always
+        ports:
+        - name: http-port-app
+          containerPort: 8080
+        env:
+          - name: NODE_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: MSGC_CLUSTER_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: msgc-config
+                key: cluster_secret
+          - name: AMQP_URI
+            value: "amqp://{{ rabbitmq_default_username }}:{{ rabbitmq_default_password }}@rabbitmq.rabbitmq:5672"
+          - name: MSGC_PROFILE
+            value: "prod"
+          - name: BIND_ADDRESS
+            value: "0.0.0.0"
+          - name: BIND_PORT
+            value: "8080"
+          - name: CSR_CACHE_PATH
+            value: "/ca/cache/"
+          - name: CA_BASE_PATH
+            value: "/ca/"
+          - name: MSGC_NODES_DISCOVERY_INTERVAL
+            value: "2000"
+          - name: MSGC_PGSQL_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: rds-msgc-username
+                key: username
+          - name: MSGC_PGSQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rds-msgc-password
+                key: password
+          - name: MSGC_PGSQL_DBNAME
+            value: "{{ rds_msgc_db_name }}"
+          - name: MSGC_PGSQL_HOST
+            value: "{{ rds_msgc_host }}"
+          - name: MSGC_DB_MODE
+            value: "pgsql"
+          - name: MSGC_PGSQL_CONN_POOL
+            value: "15"
+          - name: SUPPORT_SYSTEM_USERID
+            value: "0324b4d3b5809ba9411399d0b4cde48d362a9fd4bfbc76ae7e1c4b31634a2dcda5"
+          - name: DATACORE_ADDRESS
+            value: "datacore.datacore:3000"
+          - name: CHATBOT_SYSTEM_USERID
+            value: "02f339b00a27c43c2dacc7c183c8ecd1f4fb2891cd0db49b7068bdbb180aa4919a"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+        readinessProbe:
+          httpGet:
+            path: /healthy
+            port: http-port-app
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthy
+            port: http-port-app
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      - name: nginx
+        image: {{ ecr_url }}/custom-openresty:919138171-main-4225f64d
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+        - name: lua-config
+          mountPath: /etc/nginx/lua
+        - name: unagi-ca
+          mountPath: /etc/nginx/conf.d/crt
+          readOnly: true
+        imagePullPolicy: Always
+        ports:
+        - name: http-port
+          containerPort: 80
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "200Mi"
+          requests:
+            cpu: "100m"
+            memory: "100Mi"
+        readinessProbe:
+          httpGet:
+            path: /healthy
+            port: http-port
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthy
+            port: http-port
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: msgc
+  namespace: {{ msgc_namespace }}
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: msgc
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: msgc
+  namespace: {{ msgc_namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: msgc
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

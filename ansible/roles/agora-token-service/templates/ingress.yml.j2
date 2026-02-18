@@ -1,0 +1,30 @@
+---
+api_version: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agora-ingress
+  namespace: "{{ agora_namespace }}"
+  annotations: 
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
+      nginx.ingress.kubernetes.io/auth-tls-secret: "{{ agora_namespace }}/unagi-ca-crt"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      external-dns.alpha.kubernetes.io/hostname: api.agora.{{ public_domain }}
+      nginx.ingress.kubernetes.io/limit-rps: "20"
+      nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+spec:
+  tls:
+  - hosts:
+    - "api.agora.{{ public_domain }}"
+    secretName: agora-tls
+  rules:
+    - host: "api.agora.{{ public_domain }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: "agora-token-service"
+                port:
+                  number: 80

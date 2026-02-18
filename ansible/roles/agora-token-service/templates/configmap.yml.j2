@@ -1,0 +1,33 @@
+---
+apiVersion: v1
+data:
+  agora-token-service.conf: |
+    server_tokens "off";
+    server {
+        listen 80 default_server;
+
+        access_log /dev/stdout;
+        error_log /dev/stdout;
+
+        server_name _;
+
+        client_max_body_size 5M;
+
+        location /rtc/fsda/publisher/uid/646464556444698 {
+            proxy_pass http://127.0.0.1:9595;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location / {
+        if ($http_ssl_client_cert = '') {
+            return 403;
+        }
+            proxy_pass http://127.0.0.1:9595/;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+kind: ConfigMap
+metadata:
+  name: middleman-nginx-config
+  namespace: {{ agora_namespace }}
