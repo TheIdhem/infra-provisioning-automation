@@ -1,6 +1,7 @@
 ---
 - name: Upgrade grub
   ansible.builtin.command: update-grub
+  changed_when: false
 
 - name: Reboot
   ansible.builtin.reboot:
