@@ -76,8 +76,9 @@ data "archive_file" "cloudwatch_alert_lambda_code_zip" {
 }
 
 resource "aws_lambda_function" "cloudwatch_alert" {
-  filename      = var.cw_alert_lambda_func_path
-  function_name = "cloudwatch-alert-function-${var.environment}"
+  filename         = data.archive_file.cloudwatch_alert_lambda_code_zip.output_path
+  source_code_hash = data.archive_file.cloudwatch_alert_lambda_code_zip.output_base64sha256
+  function_name    = "cloudwatch-alert-function-${var.environment}"
   role          = aws_iam_role.cloudwatch_alert_lambda_role.arn
   handler       = "alert.lambda_handler"
   runtime       = "python3.9"
