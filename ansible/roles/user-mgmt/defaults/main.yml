@@ -1,0 +1,40 @@
+---
+usermgmt_groups:
+  - infra
+
+usermgmt_users:
+  - name: "Ali Yousefian"
+    username: "ali-yousefian"
+    keys: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDc1asp/d6ImXmNmunD/POM1AN2/8HT+dvnwzombVlk0Y8tVTOFbSM12xmQNtVZ3M4WC+rBk2HHBd7jqojhG12MONmvh2SLUpQbDzmrf+HvjHs1vkDLYa3MRSwXXPoMLRGBA4dqMVohesh/qL93MVneHsRzRLqMo9wcf7jlO2pdwm1SOm5vmXKLD8hx7eEvaYzeiyhp+JGGLaanCzv5zOS5i+TdcWstDBh+zJTsiNxtcNH12KsQqldhVWDhvDVLgKgwDJMKImtP+csUW2FNhxa1Xo9/cj1es5GrUTM81lGsAbUqar7MNm9VvcDAQkSVNY2VD3f9A2JvUEcU4mLSO3a69NMShlR8YEK4s0kghMy7GD5Y96Ehg+SoDvinwJ8Vi2JvdsX7nycQ1w7PVnUfZMMtvKgk/z3eBve1Ua30jmF5wzcw/HzEg/uszh1Iy0BIF9WJpKcN9v6yIBfMUqOhFUgRBp/PlpcS2JWpPvlm0qJT9jgjn6Oni3GcruPl5UN4H0UUcRlW0iGqJ5PFP0DUZC4uVMGHXqCmrwnZq9wtzOKPnliDdJ9bz0VFY4jM+Z3DtofonEnLbINhThMD1mXARhvrGuYBrDSuoKk8jZwqLUDhHPEspEizfs772D6/IDDx7Yb96ZhY++vHgG6UwZXfmIYeN/XCcC+kalAwFVbd8/4P3w== ali@unagi.me
+    shell: "/bin/bash"
+    group: "infra"
+    add_key_to_root: true
+
+  - name: "Hosein Beigi"
+    username: "h-beigi"
+    keys: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxC6H+Vm3zGTjhttNMGubK6AWPQngXtRs9d/aMpCKMQul7UT6ZOLet3pqbXfLLPP9xYsNqphSI8TqnEbYbtdvE5nlSPBxpHbdlB7wrhIJWfAC3WBom/P8NoyMxj2UXF+ukKXFMW7ViQw1W5WCKD/HD9usQ5ukzLJG6yv5FqFE/ghses2+2mun0ThJa8xKb2cbRzEtYIGL+JSALWKl8OmLHDxdzpxMAb38I7exE28x4QglThiRbtzrPcdJi3IpFfXpbO2Q5KH21K9Hq6ndED1rTxw76+B3QN+apnGA7DhpT0TlIi/YCUb6CUl+Iw4KlL+edfhONn4ASDgnpCUYTruANhMvxQbTEnw03PXhA3rWqiTtwkZGUqoJnhb90wqYbYzmvOrT/N/1dd3xMOh8gLTtbmJr4L5K1WPLiKSDrqWIwNQMrh3OvHM4VvHSH55tJoVV0y9GJM20V1s0bjtrQ+3j1EihWpeRscI6DGhcOGa98tE7XuuXtqCd7CFq26h5TPgM= hosein.beigi@unagi.me
+    shell: "/bin/bash"
+    group: "infra"
+    add_key_to_root: true
+
+  - name: "Mehdi Fallahi"
+    username: "m-fallahi"
+    keys: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDev9pn6oLSq5WbNs/5at99yARLfNDOjhERhowbYJH2K8VU2NX8X1KGgNneGyjWuAmJ30lWswF/qQVw58VE6gcoP5ctOjpwwuswQqAzgBtrySmsPg27FSeMxSXN33hgBUJD7IecJZ9/teTac1aiy9PMLhtBbK1IO+kQPmoBPlfg1SdgQ+s6z8DJTOKxYZk2zIyZX4FIMS/FlnoDwAn4IQH6WuJFwIdojcIft5ydtQNFW4XVwZs9wx628c0ANtmkuhuej+uZcQA6Gfd3sj0DZ63CQziG3fGdBpTosq/dmX47NPs3WI/cbCx4EK2BWNN9/A2YPw6K6F9/LzVZX3t8iF2J m.fallahi@unagi.me
+    shell: "/bin/bash"
+    group: "infra"
+    add_key_to_root: true
+
+  - name: "Mehdi Azimi"
+    username: "m-azimi"
+    keys: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC6VHLrdrmeNzDqugQpJe6DYtyQ/aDl3ngi0GvhqO/IIzidZZfwxk6bQPV85gBhIAqg7Ayp8wC+pIpvUYtl3RXhzp1pgcctb9oueo++P5EoRivQ8zoZucu5qeXeAuWdt+ErXCE/f3ZuC+n69iGcQY5/9A1yCjQKf1eq1e+UFUTtbcRG3XoIObld8sRyLBwReG/XurrnCZfG2jc+w3B3npln8Mj9SXRP59VCwl30JFK7IDTcZOeUUTDu1TYSwkxh8FDbtXLWcT8gCddEW4KS9qFLiAGzntxukOcjJyA5zOzQs5dxf4t+LGTe24GyayekHS7oVVllG3PG7O5qeGl+4J6Qxxsxs2jEZW5QmuiouH5VXuVILfRCxmpP3gSFawJEhboSTA8cbIHkI0TSK5RH6csDQaZ74hn9L3sNP9UHsrSjRNwNJE/vqS1JzlmgQtJJjmfk323qeUWdirpSyFJQKQ1Xc6PKCcTlPja3FdVaAhUDwYVK86VJ+CvBtY2NPTQZGp0= mehdi@unagi.me
+    shell: "/bin/bash"
+
+  - name: "Reza Ahmadi"
+    username: "r-ahmadi"
+    keys: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD8hlPLJZ0zzOEyRZdnKcsKh86Gnqbu5eUN/pCVuiE6pKGZDtArxUENmw8yMXk9ZYd3DdqSLPvZUB5ApvUDp0JAd9nn9lKY2hDUh/j1lQLBbsIRlM0ZI/4pfq+MYCM+IrGHU4FMNR/r1AtykdoJzm/Ng5ZBOb3yjnH0No/hh4b0j/GXqkKPYBXJBTvMldwG5WNhfHr/luIiqtsPkBL2VclW0H9wJjbFL1ryxi6BtzpsLsgahI9QLyoufwouws3Qp11m1BOrywv5S3iO06LdHbncvcYuW0xzYpx7wqwi0Ep5yCny+wyuADGYxTTWZYCRBylaBmITYlzvrXi2Q96bZIfT reza@unagi.me"
+    shell: "/bin/bash"
+
+  - name: "Milad Hashemi"
+    username: "m-hashemi"
+    keys: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAaQSkzWBOcruUb7r78kkq7zpJuKhD/MJrji76uo9F6r milad.h@unagi.me"
+    shell: "/bin/bash"

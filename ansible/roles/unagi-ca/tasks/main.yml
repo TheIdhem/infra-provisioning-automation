@@ -1,0 +1,68 @@
+---
+- name: ca priv keys
+  block:
+    - name: Create temporary file to store private key
+      ansible.builtin.tempfile:
+        state: file
+        suffix: temp
+      register: privatekey
+
+    - name: Generate private key
+      community.crypto.openssl_privatekey:
+        path: "{{ privatekey.path }}"
+        type: RSA
+        size: 4096
+
+    - name: Get ca privatekey
+      ansible.builtin.slurp:
+        src: "{{ privatekey.path }}"
+      register: openssl_privatekey
+
+    - name: Save privkey to ASM aws
+      community.aws.secretsmanager_secret:
+        name: "{{ unagi_ca_privkey_secret_name }}"
+        state: present
+        secret_type: "string"
+        secret: "{{ openssl_privatekey['content'] | b64decode }}"
+        region: "{{ aws_region }}"
+  when:
+    - not lookup('amazon.aws.aws_secret', unagi_ca_privkey_secret_name, region=aws_region, on_missing='skip', on_deleted='skip')
+
+- name: ca pub keys
+  block:
+    - name: Create temporary file to store public key
+      ansible.builtin.tempfile:
+        state: file
+        suffix: temp
+      register: publickey
+
+    - name: Create simple self-signed certificate
+      community.crypto.x509_certificate:
+        path: "{{ publickey.path }}"
+        privatekey_path: "{{ privatekey.path }}"
+        provider: selfsigned
+
+    - name: Get ca public key
+      ansible.builtin.slurp:
+        src: "{{ publickey.path }}"
+      register: openssl_publickey
+
+    - name: Delete temporary file
+      ansible.builtin.file:
+        state: absent
+        path: "{{ privatekey.path }}"
+
+    - name: Delete temporary file
+      ansible.builtin.file:
+        state: absent
+        path: "{{ publickey.path }}"
+
+    - name: Save publickey to ASM aws
+      community.aws.secretsmanager_secret:
+        name: "{{ unagi_ca_pubkey_secret_name }}"
+        state: present
+        secret_type: "string"
+        secret: "{{ openssl_publickey['content'] | b64decode }}"
+        region: "{{ aws_region }}"
+  when:
+    - not lookup('amazon.aws.aws_secret', unagi_ca_pubkey_secret_name, region=aws_region, on_missing='skip', on_deleted='skip')

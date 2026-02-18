@@ -1,0 +1,20 @@
+---
+- name: combine usermgmt_users and usermgmt_custom_users
+  ansible.builtin.set_fact:
+    usermgmt_users: "{{ usermgmt_users + usermgmt_custom_users | default([]) }}"
+
+- name: Create users
+  ansible.builtin.user:
+    name: "{{ item.username }}"
+    state: "{{ item.state | default('present') }}"
+    shell: "{{ item.shell | default('/bin/bash') }}"
+    groups: "{{ item.group | default(omit) }}"
+  when: item.username is defined
+  loop: "{{ usermgmt_users | list }}"
+
+- name: Add ssh keys to users
+  ansible.posix.authorized_key:
+    user: "{{ item.username }}"
+    key: "{{ (item)['keys'] }}"
+    exclusive: true
+  loop: "{{ usermgmt_users | list }}"
